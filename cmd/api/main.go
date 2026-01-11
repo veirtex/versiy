@@ -12,7 +12,7 @@ func main() {
 		addr: env.GetString("ADDR", ":3000"),
 		postgresConfig: postgreSQLConfig{
 			addr:           env.GetString("POSTGRES_ADDR", ""),
-			max_idle_conns: 10,
+			max_idle_conns: 10, // not used yet
 		},
 		redisConfig: redisConfig{
 			addr: env.GetString("REDIS_ADDR", ""),
@@ -31,6 +31,7 @@ func main() {
 	app := application{
 		cfg:   cfg,
 		store: database.NewStorage(conn),
+		env:   env.GetString("ENVIRONMENT", "development"),
 	}
 
 	r := app.mount()
