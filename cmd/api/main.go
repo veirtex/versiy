@@ -4,8 +4,6 @@ import (
 	"context"
 	"versiy/env"
 	"versiy/internal/database"
-
-	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
 func main() {
