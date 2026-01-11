@@ -9,10 +9,6 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 )
 
-const (
-	VERSION = "v1"
-)
-
 type application struct {
 	store database.Storage
 	cfg   config
@@ -45,13 +41,9 @@ func (app *application) mount() *chi.Mux {
 
 	r.Use(middleware.Timeout(30 * time.Second))
 
-	r.Route("/"+VERSION, func(r chi.Router) {
-		r.Get("/health", app.health)
-		r.Route("/url", func(r chi.Router) {
-			r.Post("/", app.StoreURL)
-			r.Get("/{code}", app.GetURL)
-		})
-	})
+	r.Get("/health", app.health)
+	r.Post("/", app.StoreURL)
+	r.Get("/{code}", app.GetURL)
 
 	return r
 }
