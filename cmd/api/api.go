@@ -12,6 +12,7 @@ import (
 type application struct {
 	store database.Storage
 	cfg   config
+	env   string
 }
 
 type config struct {
