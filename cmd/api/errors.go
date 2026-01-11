@@ -7,6 +7,8 @@ import (
 
 func responseError(w http.ResponseWriter, err error, statusCode int) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(statusCode)
+
 	if statusCode == http.StatusInternalServerError {
 		encodeJSON(w, map[string]string{
 			"code":  http.StatusText(statusCode),
@@ -21,16 +23,13 @@ func responseError(w http.ResponseWriter, err error, statusCode int) {
 }
 
 func (app *application) badRequest(w http.ResponseWriter, err error) {
-	w.WriteHeader(http.StatusBadRequest)
 	responseError(w, err, http.StatusBadRequest)
 }
 
 func (app *application) internalServerError(w http.ResponseWriter, err error) {
-	w.WriteHeader(http.StatusInternalServerError)
 	responseError(w, err, http.StatusInternalServerError)
 }
 
 func (app *application) notFoundError(w http.ResponseWriter) {
-	w.WriteHeader(http.StatusNotFound)
 	responseError(w, errors.New("not found"), http.StatusNotFound)
 }
