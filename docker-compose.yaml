@@ -17,7 +17,6 @@ services:
       build:
         context: .
         dockerfile: dockerfile
-      image: versiy
       container_name: versiy-application
       env_file:
       - .env
