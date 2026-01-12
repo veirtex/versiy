@@ -7,8 +7,9 @@ import (
 	"net/http"
 )
 
-func encodeJSON(w http.ResponseWriter, data any) error {
+func encodeJSON(w http.ResponseWriter, data any, status int) error {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(status)
 
 	encoder := json.NewEncoder(w)
 	encoder.SetEscapeHTML(false)
