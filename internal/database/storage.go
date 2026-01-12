@@ -11,6 +11,7 @@ type Storage struct {
 		Store(ctx context.Context, params URLInsert, secret string) (string, error)
 		Get(ctx context.Context, shortCode string) (string, error)
 		LastTimeAccessed(ctx context.Context, shortCode string) error
+		UpdateClicks(ctx context.Context, shortCode string) error
 	}
 }
 

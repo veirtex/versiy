@@ -77,3 +77,24 @@ func (us *URLStore) LastTimeAccessed(ctx context.Context, shortCode string) erro
 	)
 	return err
 }
+
+func (us *URLStore) getLinkID(ctx context.Context, shortCode string) (int, error) {
+	var id int
+	query := "SELECT id FROM links WHERE short_code = $1"
+	if err := us.dbConn.QueryRow(ctx, query, shortCode).Scan(&id); err != nil {
+		return 0, err
+	}
+	return id, nil
+}
+
+func (us *URLStore) UpdateClicks(ctx context.Context, shortCode string) error {
+	id, err := us.getLinkID(ctx, shortCode)
+	if err != nil {
+		return err
+	}
+	query := "INSERT INTO links_clicks(link_id, clicks) VALUES ($1, $2) ON CONFLICT (link_id) DO UPDATE SET clicks = links_clicks.clicks + 1"
+	if _, err := us.dbConn.Exec(ctx, query, id, 1); err != nil {
+		return err
+	}
+	return nil
+}
