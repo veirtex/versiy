@@ -2,24 +2,23 @@ package main
 
 import (
 	"errors"
+	"log"
 	"net/http"
 )
 
 func responseError(w http.ResponseWriter, err error, statusCode int) {
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	w.WriteHeader(statusCode)
-
+	log.Printf("error %v", err)
 	if statusCode == http.StatusInternalServerError {
 		encodeJSON(w, map[string]string{
 			"code":  http.StatusText(statusCode),
 			"error": "something went wrong",
-		})
+		}, statusCode)
 		return
 	}
 	encodeJSON(w, map[string]string{
 		"code":  http.StatusText(statusCode),
 		"error": err.Error(),
-	})
+	}, statusCode)
 }
 
 func (app *application) badRequest(w http.ResponseWriter, err error) {
