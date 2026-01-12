@@ -42,10 +42,9 @@ func (app *application) StoreURL(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.WriteHeader(http.StatusCreated)
 	if err := encodeJSON(w, map[string]string{
 		"url": app.cfg.defaultLink + short_code,
-	}); err != nil {
+	}, http.StatusCreated); err != nil {
 		app.internalServerError(w, err)
 		return
 	}
@@ -80,7 +79,17 @@ func (app *application) GetURL(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := app.store.URL.LastTimeAccessed(ctx, shortCode); err != nil {
-		app.badRequest(w, err)
+		switch err {
+		case pgx.ErrNoRows:
+			app.notFoundError(w)
+		default:
+			app.internalServerError(w, err)
+		}
+		return
+	}
+
+	if err := app.store.URL.UpdateClicks(ctx, shortCode); err != nil {
+		app.internalServerError(w, err)
 		return
 	}
 
