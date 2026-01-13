@@ -1,7 +1,7 @@
 services:
   db:
       image: postgres:16.3
-      container_name: versiy-postgres-db
+      restart: unless-stopped
       env_file:
       - .env
       environment:
@@ -10,27 +10,53 @@ services:
         POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       volumes:
         - db-data:/var/lib/postgresql/data
-      ports:
-      - "${POSTGRES_PORT}:5432"
+      expose:
+      - "${POSTGRES_PORT}"
       healthcheck:
         test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
         interval: 3s
         timeout: 3s
         retries: 20
+      networks:
+        - internal
+  redis:
+      image: redis:8.4
+      restart: unless-stopped
+      volumes:
+      - ./redis.conf:/usr/local/etc/redis/redis.conf
+      command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
+      env_file:
+      - .env
+      environment:
+        REDIS_PASSWORD: ${REDIS_PASSWORD}
+      networks:
+        - internal
+      healthcheck:
+        test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+        interval: 3s
+        timeout: 3s
+        retries: 20
+
   app:
       build:
         context: .
         dockerfile: dockerfile
-      container_name: versiy-application
-      env_file:
-      - .env
+      restart: unless-stopped
       volumes:
       - ./.env:/app/.env:ro
-      ports:
-      - "${APP_PORT}:3000"
+      expose:
+      - "${APP_PORT}"
       depends_on:
         db:
           condition: service_healthy
+        redis:
+          condition: service_healthy
+      networks:
+        - internal
+
+networks:
+  internal:
+    driver: bridge
 
 volumes:
   db-data:

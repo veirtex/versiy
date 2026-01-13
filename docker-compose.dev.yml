@@ -4,26 +4,48 @@ services:
       context: .
       dockerfile: dockerfile.dev
     env_file:
-    - .env
+      - .env
     volumes:
       - .:/app
     command: air
-    ports:
-    - "${APP_PORT}:3000"
+    expose:
+      - "${APP_PORT}"
+    networks:
+      - internal
+
+  redis:
+    image: redis:8.4
+    restart: unless-stopped
+    container_name: versiy-redis-db
+    volumes:
+      - ./redis.conf:/usr/local/etc/redis/redis.conf
+    command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
+    env_file:
+      - .env
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+    networks:
+      - internal
 
   db:
-      image: postgres:16.3
-      container_name: versiy-postgres-db
-      env_file:
+    image: postgres:16.3
+    container_name: versiy-postgres-db
+    env_file:
       - .env
-      environment:
-        POSTGRES_DB: ${POSTGRES_DB}
-        POSTGRES_USER: ${POSTGRES_USER}
-        POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      volumes:
-        - db-data:/var/lib/postgresql/data
-      ports:
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    ports:
       - "${POSTGRES_PORT}:5432"
+    networks:
+      - internal
+
+networks:
+  internal:
+    driver: bridge
 
 volumes:
   db-data:
