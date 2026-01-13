@@ -2,6 +2,7 @@ package main
 
 import (
 	"net/http"
+	"sync"
 	"time"
 	"versiy/internal/database"
 
@@ -13,6 +14,7 @@ type application struct {
 	store database.Storage
 	cfg   config
 	env   string
+	mut   *sync.Mutex
 }
 
 type config struct {
@@ -21,6 +23,7 @@ type config struct {
 	defaultLink    string
 	postgresConfig postgreSQLConfig
 	redisConfig    redisConfig
+	rateLimiting   rateLimitConfig
 }
 
 type postgreSQLConfig struct {
@@ -34,6 +37,13 @@ type redisConfig struct {
 	defualtTTL time.Duration
 }
 
+type rateLimitConfig struct {
+	size      int
+	duration  time.Duration
+	counter   int
+	resetTime time.Time
+}
+
 func (app *application) mount() *chi.Mux {
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)
@@ -42,6 +52,7 @@ func (app *application) mount() *chi.Mux {
 	r.Use(middleware.Recoverer)
 
 	r.Use(middleware.Timeout(30 * time.Second))
+	r.Use(app.fixedSizeWindow)
 
 	r.Get("/health", app.health)
 	r.Post("/", app.StoreURL)

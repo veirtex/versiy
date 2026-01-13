@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"sync"
 	"time"
 	"versiy/env"
 	"versiy/internal/database"
@@ -22,6 +23,12 @@ func main() {
 		},
 		secret:      env.GetString("SECRET", "so secret"),
 		defaultLink: env.GetString("DEFAULT_DOMAIN", ""),
+		rateLimiting: rateLimitConfig{
+			size:      10,
+			duration:  time.Duration(time.Second * 10),
+			counter:   0,
+			resetTime: time.Now().Add(time.Second * 10),
+		},
 	}
 
 	conn, err := database.NewDBConn(ctx, cfg.postgresConfig.addr)
@@ -37,6 +44,7 @@ func main() {
 		cfg:   cfg,
 		store: database.NewStorage(conn, redisClient),
 		env:   env.GetString("ENVIRONMENT", "development"),
+		mut:   &sync.Mutex{},
 	}
 
 	r := app.mount()
