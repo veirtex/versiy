@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"net"
 	"net/http"
 	"strconv"
 	"time"
@@ -27,12 +28,11 @@ const deviceIDKey deviceIDKeyType = "device_id"
 
 func (app *application) fixedSizeWindow(next http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
-		deviceID := fmt.Sprintf("%s:%s", r.RemoteAddr, getValFromContext(r.Context()))
-
+		host, _, _ := net.SplitHostPort(r.RemoteAddr)
+		deviceID := fmt.Sprintf("%s:%s", host, getValFromContext(r.Context()))
 		now := time.Now()
 
 		app.mut.Lock()
-
 		device, ok := devices[deviceID]
 		if !ok {
 			device = &requestData{
