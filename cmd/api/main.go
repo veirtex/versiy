@@ -24,10 +24,8 @@ func main() {
 		secret:      env.GetString("SECRET", "so secret"),
 		defaultLink: env.GetString("DEFAULT_DOMAIN", ""),
 		rateLimiting: rateLimitConfig{
-			size:      10,
-			duration:  time.Duration(time.Second * 10),
-			counter:   0,
-			resetTime: time.Now().Add(time.Second * 10),
+			size:     10,
+			duration: time.Duration(time.Second * 10),
 		},
 	}
 

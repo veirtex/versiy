@@ -40,8 +40,6 @@ type redisConfig struct {
 type rateLimitConfig struct {
 	size      int
 	duration  time.Duration
-	counter   int
-	resetTime time.Time
 }
 
 func (app *application) mount() *chi.Mux {
@@ -52,6 +50,7 @@ func (app *application) mount() *chi.Mux {
 	r.Use(middleware.Recoverer)
 
 	r.Use(middleware.Timeout(30 * time.Second))
+	r.Use(app.handleCookies)
 	r.Use(app.fixedSizeWindow)
 
 	r.Get("/health", app.health)
