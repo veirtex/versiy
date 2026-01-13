@@ -32,14 +32,18 @@ type postgreSQLConfig struct {
 }
 
 type redisConfig struct {
-	addr       string
-	pswd       string
-	defualtTTL time.Duration
+	addr         string
+	pswd         string
+	defualtTTL   time.Duration
+	dialTimeout  time.Duration
+	readTimeout  time.Duration
+	writeTimeout time.Duration
+	poolTimeout  time.Duration
 }
 
 type rateLimitConfig struct {
-	size      int
-	duration  time.Duration
+	size     int
+	duration time.Duration
 }
 
 func (app *application) mount() *chi.Mux {
@@ -51,10 +55,14 @@ func (app *application) mount() *chi.Mux {
 
 	r.Use(middleware.Timeout(30 * time.Second))
 	r.Use(app.handleCookies)
-	r.Use(app.fixedSizeWindow)
 
 	r.Get("/health", app.health)
-	r.Post("/", app.StoreURL)
+
+	r.Group(func(r chi.Router) {
+		r.Use(app.fixedSizeWindow)
+		r.Post("/", app.StoreURL)
+	})
+
 	r.Get("/{code}", app.GetURL)
 
 	return r
