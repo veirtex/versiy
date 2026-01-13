@@ -8,8 +8,8 @@ services:
     volumes:
       - .:/app
     command: air
-    expose:
-      - "${APP_PORT}"
+    ports:
+      - "${APP_PORT}:3000"
     networks:
       - internal
 
