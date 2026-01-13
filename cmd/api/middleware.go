@@ -6,21 +6,9 @@ import (
 	"net"
 	"net/http"
 	"strconv"
-	"time"
 
 	"github.com/google/uuid"
 )
-
-type requestData struct {
-	requests  int
-	resetTime time.Time
-}
-
-var devices map[string]*requestData
-
-func init() {
-	devices = make(map[string]*requestData)
-}
 
 type deviceIDKeyType string
 
@@ -30,36 +18,20 @@ func (app *application) fixedSizeWindow(next http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		host, _, _ := net.SplitHostPort(r.RemoteAddr)
 		deviceID := fmt.Sprintf("%s:%s", host, getValFromContext(r.Context()))
-		now := time.Now()
+		ctx := r.Context()
 
-		app.mut.Lock()
-		device, ok := devices[deviceID]
-		if !ok {
-			device = &requestData{
-				requests:  0,
-				resetTime: time.Now().Add(app.cfg.rateLimiting.duration),
-			}
-			devices[deviceID] = device
+		req, err := app.store.Users.IncrUser(ctx, deviceID, app.cfg.rateLimiting.duration)
+		if err != nil {
+			app.internalServerError(w, err)
+			return
 		}
 
-		if now.After(device.resetTime) {
-			device.requests = 0
-			device.resetTime = now.Add(app.cfg.rateLimiting.duration)
-		}
-
-		if device.requests >= app.cfg.rateLimiting.size {
-			reset := device.resetTime
-			app.mut.Unlock()
-
-			w.Header().Set("x-rate-limited", strconv.Itoa(int(time.Now().Unix())))
-			w.Header().Set("x-retry-After", strconv.Itoa(int(time.Until(reset).Seconds())))
+		if req > app.cfg.rateLimiting.size {
+			w.Header().Set("Retry-After", strconv.Itoa(int(app.cfg.rateLimiting.duration)))
 			http.Error(w, "rate limit exceeded", http.StatusTooManyRequests)
 			return
 		}
 
-		device.requests++
-
-		app.mut.Unlock()
 		next.ServeHTTP(w, r)
 	}
 	return http.HandlerFunc(fn)

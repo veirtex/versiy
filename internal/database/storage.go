@@ -17,10 +17,14 @@ type Storage struct {
 		CacheResult(ctx context.Context, shortCode, url string, TTL time.Duration) error
 		CheckCached(ctx context.Context, shortCode string) (string, error)
 	}
+	Users interface {
+		IncrUser(ctx context.Context, id string, duration time.Duration) (int, error)
+	}
 }
 
 func NewStorage(conn *pgx.Conn, redis *redis.Client) Storage {
 	return Storage{
-		URL: &URLStore{dbConn: conn, redisClient: redis},
+		URL:   &URLStore{dbConn: conn, redisClient: redis},
+		Users: &UsersStore{redisClient: redis},
 	}
 }
