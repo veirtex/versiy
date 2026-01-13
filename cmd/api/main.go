@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"time"
 	"versiy/env"
 	"versiy/internal/database"
 )
@@ -15,7 +16,9 @@ func main() {
 			max_idle_conns: 10, // not used yet
 		},
 		redisConfig: redisConfig{
-			addr: env.GetString("REDIS_ADDR", ""),
+			addr:       env.GetString("REDIS_ADDR", ""),
+			pswd:       env.GetString("REDIS_PASSWORD", ""),
+			defualtTTL: time.Duration(time.Hour * 24),
 		},
 		secret:      env.GetString("SECRET", "so secret"),
 		defaultLink: env.GetString("DEFAULT_DOMAIN", ""),
@@ -26,11 +29,13 @@ func main() {
 		panic(err)
 	}
 
+	redisClient := database.NewRedisConn(ctx, cfg.redisConfig.addr, cfg.redisConfig.pswd)
+
 	defer conn.Close(ctx)
 
 	app := application{
 		cfg:   cfg,
-		store: database.NewStorage(conn),
+		store: database.NewStorage(conn, redisClient),
 		env:   env.GetString("ENVIRONMENT", "development"),
 	}
 

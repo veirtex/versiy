@@ -6,10 +6,12 @@ import (
 	"versiy/internal/util"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/redis/go-redis/v9"
 )
 
 type URLStore struct {
-	dbConn *pgx.Conn
+	dbConn      *pgx.Conn
+	redisClient *redis.Client
 }
 
 type URLInsert struct {
@@ -67,6 +69,22 @@ func (us *URLStore) Get(ctx context.Context, shortCode string) (string, error) {
 		return "", err
 	}
 	return url, nil
+}
+
+func (us *URLStore) CacheResult(ctx context.Context, shortCode, url string, TTL time.Duration) error {
+	status := us.redisClient.Set(ctx, shortCode, url, TTL)
+	if status.Err() != nil {
+		return status.Err()
+	}
+	return nil
+}
+
+func (us *URLStore) CheckCached(ctx context.Context, shortCode string) (string, error) {
+	value, err := us.redisClient.Get(ctx, shortCode).Result()
+	if err != nil {
+		return "", err
+	}
+	return value, nil
 }
 
 func (us *URLStore) LastTimeAccessed(ctx context.Context, shortCode string) error {

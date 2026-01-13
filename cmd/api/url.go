@@ -55,6 +55,16 @@ func (app *application) GetURL(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), time.Second*5)
 	defer cancel()
 
+	cachedURL, err := app.store.URL.CheckCached(ctx, shortCode)
+	if cachedURL != "" {
+		if err := app.store.URL.UpdateClicks(ctx, shortCode); err != nil {
+			app.internalServerError(w, err)
+			return
+		}
+		http.Redirect(w, r, cachedURL, http.StatusFound)
+		return
+	}
+
 	originalURL, err := app.store.URL.Get(ctx, shortCode)
 
 	if err != nil {
@@ -89,6 +99,11 @@ func (app *application) GetURL(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := app.store.URL.UpdateClicks(ctx, shortCode); err != nil {
+		app.internalServerError(w, err)
+		return
+	}
+
+	if err = app.store.URL.CacheResult(ctx, shortCode, originalURL, app.cfg.redisConfig.defualtTTL); err != nil {
 		app.internalServerError(w, err)
 		return
 	}

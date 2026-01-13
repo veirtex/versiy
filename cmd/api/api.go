@@ -30,7 +30,8 @@ type postgreSQLConfig struct {
 
 type redisConfig struct {
 	addr       string
-	defualtTTL int
+	pswd       string
+	defualtTTL time.Duration
 }
 
 func (app *application) mount() *chi.Mux {
