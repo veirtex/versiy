@@ -5,7 +5,15 @@ import (
 	"errors"
 	"io"
 	"net/http"
+
+	"github.com/go-playground/validator/v10"
 )
+
+var Validate *validator.Validate
+
+func init() {
+	Validate = validator.New(validator.WithRequiredStructEnabled())
+}
 
 func encodeJSON(w http.ResponseWriter, data any, status int) error {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")

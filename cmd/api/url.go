@@ -15,9 +15,14 @@ import (
 
 func (app *application) StoreURL(w http.ResponseWriter, r *http.Request) {
 	var req struct {
-		OriginalURL string `json:"original_url"`
+		OriginalURL string `json:"original_url" validate:"required,url"`
 	}
 	if err := decodeJSON(r, &req); err != nil {
+		app.badRequest(w, err)
+		return
+	}
+
+	if err := Validate.Struct(&req); err != nil {
 		app.badRequest(w, err)
 		return
 	}
