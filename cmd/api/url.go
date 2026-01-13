@@ -61,6 +61,10 @@ func (app *application) GetURL(w http.ResponseWriter, r *http.Request) {
 			app.internalServerError(w, err)
 			return
 		}
+		if err := app.store.URL.LastTimeAccessed(ctx, shortCode); err != nil {
+			app.internalServerError(w, err)
+			return
+		}
 		http.Redirect(w, r, cachedURL, http.StatusFound)
 		return
 	}
