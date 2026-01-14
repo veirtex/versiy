@@ -18,7 +18,7 @@ func main() {
 		redisConfig: redisConfig{
 			addr:         env.GetString("REDIS_ADDR", ""),
 			pswd:         env.GetString("REDIS_PASSWORD", ""),
-			defualtTTL:   time.Duration(time.Hour * 24),
+			defaultTTL:   time.Duration(time.Hour * 24),
 			dialTimeout:  2 * time.Second,
 			readTimeout:  1 * time.Second,
 			writeTimeout: 1 * time.Second,

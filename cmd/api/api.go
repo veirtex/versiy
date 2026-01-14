@@ -34,7 +34,7 @@ type postgreSQLConfig struct {
 type redisConfig struct {
 	addr         string
 	pswd         string
-	defualtTTL   time.Duration
+	defaultTTL   time.Duration
 	dialTimeout  time.Duration
 	readTimeout  time.Duration
 	writeTimeout time.Duration

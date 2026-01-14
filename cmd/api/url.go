@@ -30,7 +30,7 @@ func (app *application) StoreURL(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), time.Second*5)
 	defer cancel()
 
-	defualtExpiry := time.Now().Add(time.Hour * 24 * 30)
+	defaultExpiry := time.Now().Add(time.Hour * 24 * 30)
 
 	originalURL, err := util.NormalizeURL(req.OriginalURL)
 	if err != nil {
@@ -40,7 +40,7 @@ func (app *application) StoreURL(w http.ResponseWriter, r *http.Request) {
 
 	short_code, err := app.store.URL.Store(ctx, database.URLInsert{
 		OriginalURL: originalURL,
-		ExpiresAt:   &defualtExpiry,
+		ExpiresAt:   &defaultExpiry,
 	}, app.cfg.secret)
 	if err != nil {
 		app.badRequest(w, err)
@@ -112,7 +112,7 @@ func (app *application) GetURL(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err = app.store.URL.CacheResult(ctx, shortCode, originalURL, app.cfg.redisConfig.defualtTTL); err != nil {
+	if err = app.store.URL.CacheResult(ctx, shortCode, originalURL, app.cfg.redisConfig.defaultTTL); err != nil {
 		app.internalServerError(w, err)
 		return
 	}

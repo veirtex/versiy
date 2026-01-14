@@ -24,7 +24,11 @@ type Storage struct {
 
 func NewStorage(conn *pgx.Conn, redis *redis.Client) Storage {
 	return Storage{
-		URL:   &URLStore{dbConn: conn, redisClient: redis},
-		Users: &UsersStore{redisClient: redis},
+		URL:   &URLStore{DBConn: conn, RedisClient: redis},
+		Users: &UsersStore{RedisClient: redis},
 	}
+}
+
+func NewStorageWithMocks(conn *pgx.Conn, redis *redis.Client) Storage {
+	return NewStorage(conn, redis)
 }

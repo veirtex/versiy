@@ -8,12 +8,12 @@ import (
 )
 
 type UsersStore struct {
-	redisClient *redis.Client
+	RedisClient *redis.Client
 }
 
 func (u *UsersStore) IncrUser(ctx context.Context, id string, duration time.Duration) (int, error) {
-	_ = u.redisClient.SetNX(ctx, id, 0, duration)
-	if val, err := u.redisClient.Incr(ctx, id).Result(); err != nil {
+	_ = u.RedisClient.SetNX(ctx, id, 0, duration)
+	if val, err := u.RedisClient.Incr(ctx, id).Result(); err != nil {
 		return 0, err
 	} else {
 		return int(val), nil

@@ -10,8 +10,8 @@ import (
 )
 
 type URLStore struct {
-	dbConn      *pgx.Conn
-	redisClient *redis.Client
+	DBConn      *pgx.Conn
+	RedisClient *redis.Client
 }
 
 type URLInsert struct {
@@ -20,7 +20,7 @@ type URLInsert struct {
 }
 
 func (us *URLStore) Store(ctx context.Context, params URLInsert, secret string) (string, error) {
-	tx, err := us.dbConn.Begin(ctx)
+	tx, err := us.DBConn.Begin(ctx)
 	if err != nil {
 		return "", err
 	}
@@ -60,7 +60,7 @@ func (us *URLStore) Store(ctx context.Context, params URLInsert, secret string) 
 
 func (us *URLStore) Get(ctx context.Context, shortCode string) (string, error) {
 	var url string
-	err := us.dbConn.QueryRow(ctx,
+	err := us.DBConn.QueryRow(ctx,
 		"SELECT original_url FROM links WHERE short_code = $1 AND expires_at >= $2",
 		shortCode,
 		time.Now(),
@@ -72,7 +72,7 @@ func (us *URLStore) Get(ctx context.Context, shortCode string) (string, error) {
 }
 
 func (us *URLStore) CacheResult(ctx context.Context, shortCode, url string, TTL time.Duration) error {
-	status := us.redisClient.Set(ctx, shortCode, url, TTL)
+	status := us.RedisClient.Set(ctx, shortCode, url, TTL)
 	if status.Err() != nil {
 		return status.Err()
 	}
@@ -80,7 +80,7 @@ func (us *URLStore) CacheResult(ctx context.Context, shortCode, url string, TTL 
 }
 
 func (us *URLStore) CheckCached(ctx context.Context, shortCode string) (string, error) {
-	value, err := us.redisClient.Get(ctx, shortCode).Result()
+	value, err := us.RedisClient.Get(ctx, shortCode).Result()
 	if err != nil {
 		return "", err
 	}
@@ -88,7 +88,7 @@ func (us *URLStore) CheckCached(ctx context.Context, shortCode string) (string, 
 }
 
 func (us *URLStore) LastTimeAccessed(ctx context.Context, shortCode string) error {
-	_, err := us.dbConn.Exec(ctx,
+	_, err := us.DBConn.Exec(ctx,
 		"UPDATE links SET last_time_accessed = $1 WHERE short_code = $2",
 		time.Now(),
 		shortCode,
@@ -99,7 +99,7 @@ func (us *URLStore) LastTimeAccessed(ctx context.Context, shortCode string) erro
 func (us *URLStore) getLinkID(ctx context.Context, shortCode string) (int, error) {
 	var id int
 	query := "SELECT id FROM links WHERE short_code = $1"
-	if err := us.dbConn.QueryRow(ctx, query, shortCode).Scan(&id); err != nil {
+	if err := us.DBConn.QueryRow(ctx, query, shortCode).Scan(&id); err != nil {
 		return 0, err
 	}
 	return id, nil
@@ -111,7 +111,7 @@ func (us *URLStore) UpdateClicks(ctx context.Context, shortCode string) error {
 		return err
 	}
 	query := "INSERT INTO links_clicks(link_id, clicks) VALUES ($1, $2) ON CONFLICT (link_id) DO UPDATE SET clicks = links_clicks.clicks + 1"
-	if _, err := us.dbConn.Exec(ctx, query, id, 1); err != nil {
+	if _, err := us.DBConn.Exec(ctx, query, id, 1); err != nil {
 		return err
 	}
 	return nil
