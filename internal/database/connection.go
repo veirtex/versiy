@@ -23,8 +23,10 @@ func NewDBConn(ctx context.Context, addr string) (*pgxpool.Pool, error) {
 	config.MaxConnIdleTime = 5 * time.Minute
 	config.HealthCheckPeriod = 30 * time.Second
 
-	config.ConnConfig.TLSConfig = &tls.Config{
-		MinVersion: tls.VersionTLS12,
+	if strings.Contains(addr, "sslmode=require") || strings.Contains(addr, "sslmode=verify-ca") || strings.Contains(addr, "sslmode=verify-full") {
+		config.ConnConfig.TLSConfig = &tls.Config{
+			MinVersion: tls.VersionTLS12,
+		}
 	}
 
 	pool, err := pgxpool.NewWithConfig(ctx, config)
