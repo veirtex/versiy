@@ -392,11 +392,14 @@ func ValidateHostHeader(host, expectedHost string) error {
 		return errors.New("host header cannot be empty")
 	}
 
-	// Remove port if present
 	host = strings.Split(host, ":")[0]
 
-	// If expected host is provided, validate against it
 	if expectedHost != "" {
+		parsedURL, err := url.Parse(expectedHost)
+		if err == nil && parsedURL.Hostname() != "" {
+			expectedHost = parsedURL.Hostname()
+		}
+
 		if host != expectedHost {
 			return fmt.Errorf("invalid host header: expected %s, got %s", expectedHost, host)
 		}
