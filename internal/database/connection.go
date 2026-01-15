@@ -3,6 +3,7 @@ package database
 import (
 	"context"
 	"crypto/tls"
+	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -34,7 +35,7 @@ func NewDBConn(ctx context.Context, addr string) (*pgxpool.Pool, error) {
 }
 
 func NewRedisConn(ctx context.Context, addr string, psw string, dialTimeout, readTimeout, writeTimeout, poolTimeout time.Duration) *redis.Client {
-	rdb := redis.NewClient(&redis.Options{
+	options := &redis.Options{
 		Addr:                  addr,
 		Password:              psw,
 		DB:                    0,
@@ -49,9 +50,14 @@ func NewRedisConn(ctx context.Context, addr string, psw string, dialTimeout, rea
 		ConnMaxIdleTime:       30 * time.Minute,
 		ConnMaxLifetime:       0,
 		ContextTimeoutEnabled: true,
-		TLSConfig: &tls.Config{
+	}
+
+	if strings.HasPrefix(addr, "rediss://") {
+		options.TLSConfig = &tls.Config{
 			MinVersion: tls.VersionTLS12,
-		},
-	})
+		}
+	}
+
+	rdb := redis.NewClient(options)
 	return rdb
 }
