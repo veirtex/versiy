@@ -24,12 +24,20 @@ func main() {
 			writeTimeout: 5 * time.Second,
 			poolTimeout:  5 * time.Second,
 		},
-		secret:      env.GetString("SECRET", "so secret"),
+		secret:      env.GetString("SECRET", ""),
 		defaultLink: env.GetString("DEFAULT_DOMAIN", ""),
 		rateLimiting: rateLimitConfig{
 			size:     10,
 			duration: time.Duration(time.Second * 15),
 		},
+	}
+
+	if cfg.secret == "" {
+		panic("SECRET environment variable is required")
+	}
+
+	if len(cfg.secret) < 32 {
+		panic("SECRET must be at least 32 characters")
 	}
 
 	pool, err := database.NewDBConn(ctx, cfg.postgresConfig.addr)

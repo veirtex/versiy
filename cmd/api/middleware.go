@@ -2,12 +2,11 @@ package main
 
 import (
 	"context"
-	"fmt"
-	"net"
 	"net/http"
 	"strconv"
 
 	"github.com/google/uuid"
+	"versiy/internal/security"
 )
 
 type deviceIDKeyType string
@@ -16,16 +15,25 @@ const deviceIDKey deviceIDKeyType = "device_id"
 
 func (app *application) fixedSizeWindow(next http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
-		host, _, _ := net.SplitHostPort(r.RemoteAddr)
-		deviceID := fmt.Sprintf("%s:%s", host, getValFromContext(r.Context()))
 		ctx := r.Context()
 
-		req, err := app.store.Users.IncrUser(ctx, deviceID, app.cfg.rateLimiting.duration)
+		// Extract X-Forwarded-For header for proxy/load balancer cases
+		xForwardedFor := r.Header.Get("X-Forwarded-For")
+
+		// Get device ID from context if available
+		idFromCtx := getValFromContext(ctx)
+
+		// Get rate limit identifier (prefers IP, falls back to cookie)
+		rateLimitKey := security.GetRateLimitIdentifier(r.RemoteAddr, xForwardedFor, idFromCtx)
+
+		// Increment rate limit counter
+		req, err := app.store.Users.IncrUser(ctx, rateLimitKey, app.cfg.rateLimiting.duration)
 		if err != nil {
 			app.internalServerError(w, err)
 			return
 		}
 
+		// Check if rate limit exceeded
 		if req > app.cfg.rateLimiting.size {
 			w.Header().Set("Retry-After", strconv.Itoa(int(app.cfg.rateLimiting.duration)))
 			http.Error(w, "rate limit exceeded", http.StatusTooManyRequests)
@@ -39,38 +47,37 @@ func (app *application) fixedSizeWindow(next http.Handler) http.Handler {
 
 func (app *application) handleCookies(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		cookie, err := r.Cookie("device_id")
+		cookies := r.Cookies()
 
-		needNew := false
+		// Validate and use only first device_id cookie
 		var deviceID string
+		needNew := true
 
-		switch err {
-		case http.ErrNoCookie:
-			needNew = true
-		case nil:
-			if _, err := uuid.Parse(cookie.Value); err != nil {
-				needNew = true
-			} else {
-				if cookie.Value == "" {
-					needNew = true
-				} else {
-					deviceID = cookie.Value
+		for _, cookie := range cookies {
+			if cookie.Name == "device_id" {
+				// Validate cookie value
+				if err := security.ValidateCookieValue(cookie.Value); err == nil {
+					if _, err := uuid.Parse(cookie.Value); err == nil && cookie.Value != "" {
+						deviceID = cookie.Value
+						needNew = false
+						break
+					}
 				}
 			}
-		default:
-			next.ServeHTTP(w, r)
-			return
 		}
 
 		if needNew {
 			deviceID = uuid.NewString()
+
+			// Always set Secure flag for production security
+			// Use SameSite=Strict for better CSRF protection
 			http.SetCookie(w, &http.Cookie{
 				Name:     "device_id",
 				Value:    deviceID,
 				Path:     "/",
 				HttpOnly: true,
-				SameSite: http.SameSiteLaxMode,
-				Secure:   r.TLS != nil,
+				SameSite: http.SameSiteStrictMode,
+				Secure:   true,
 				MaxAge:   60 * 60 * 24 * 365,
 			})
 		}

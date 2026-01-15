@@ -2,6 +2,7 @@ package database
 
 import (
 	"context"
+	"crypto/tls"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -20,6 +21,10 @@ func NewDBConn(ctx context.Context, addr string) (*pgxpool.Pool, error) {
 	config.MaxConnLifetime = 1 * time.Hour
 	config.MaxConnIdleTime = 5 * time.Minute
 	config.HealthCheckPeriod = 30 * time.Second
+
+	config.ConnConfig.TLSConfig = &tls.Config{
+		MinVersion: tls.VersionTLS12,
+	}
 
 	pool, err := pgxpool.NewWithConfig(ctx, config)
 	if err != nil {
@@ -44,6 +49,9 @@ func NewRedisConn(ctx context.Context, addr string, psw string, dialTimeout, rea
 		ConnMaxIdleTime:       30 * time.Minute,
 		ConnMaxLifetime:       0,
 		ContextTimeoutEnabled: true,
+		TLSConfig: &tls.Config{
+			MinVersion: tls.VersionTLS12,
+		},
 	})
 	return rdb
 }

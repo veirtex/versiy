@@ -7,7 +7,7 @@ import (
 	"net/url"
 	"time"
 	"versiy/internal/database"
-	"versiy/internal/util"
+	"versiy/internal/security"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5"
@@ -27,20 +27,20 @@ func (app *application) StoreURL(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(r.Context(), time.Second*5)
-	defer cancel()
-
-	defualtExpiry := time.Now().Add(time.Hour * 24 * 30)
-
-	originalURL, err := util.NormalizeURL(req.OriginalURL)
+	validatedURL, err := security.ValidateAndSanitizeURL(req.OriginalURL, app.cfg.defaultLink)
 	if err != nil {
 		app.badRequest(w, err)
 		return
 	}
 
-	short_code, err := app.store.URL.Store(ctx, database.URLInsert{
-		OriginalURL: originalURL,
-		ExpiresAt:   &defualtExpiry,
+	ctx, cancel := context.WithTimeout(r.Context(), time.Second*5)
+	defer cancel()
+
+	defaultExpiry := time.Now().Add(time.Hour * 24 * 30)
+
+	shortCode, err := app.store.URL.Store(ctx, database.URLInsert{
+		OriginalURL: validatedURL,
+		ExpiresAt:   &defaultExpiry,
 	}, app.cfg.secret)
 	if err != nil {
 		app.badRequest(w, err)
@@ -48,7 +48,7 @@ func (app *application) StoreURL(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := encodeJSON(w, map[string]string{
-		"url": app.cfg.defaultLink + short_code,
+		"url": app.cfg.defaultLink + shortCode,
 	}, http.StatusCreated); err != nil {
 		app.internalServerError(w, err)
 		return
@@ -57,6 +57,13 @@ func (app *application) StoreURL(w http.ResponseWriter, r *http.Request) {
 
 func (app *application) GetURL(w http.ResponseWriter, r *http.Request) {
 	shortCode := chi.URLParam(r, "code")
+
+	host := r.Host
+	if err := security.ValidateHostHeader(host, app.cfg.defaultLink); err != nil {
+		app.badRequest(w, errors.New("invalid host header"))
+		return
+	}
+
 	ctx, cancel := context.WithTimeout(r.Context(), time.Second*5)
 	defer cancel()
 

@@ -5,6 +5,7 @@ import (
 	"time"
 	"versiy/internal/util"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
 )
@@ -20,6 +21,26 @@ type URLInsert struct {
 }
 
 func (us *URLStore) Store(ctx context.Context, params URLInsert, secret string) (string, error) {
+	var existingShortCode string
+	var existingID int64
+
+	err := us.dbConn.QueryRow(ctx,
+		`SELECT short_code, id FROM links
+		 WHERE original_url = $1 AND expires_at > $2
+		 ORDER BY created_at DESC
+		 LIMIT 1`,
+		params.OriginalURL,
+		time.Now(),
+	).Scan(&existingShortCode, &existingID)
+
+	if err == nil {
+		return existingShortCode, nil
+	}
+
+	if err != pgx.ErrNoRows {
+		return "", err
+	}
+
 	tx, err := us.dbConn.Begin(ctx)
 	if err != nil {
 		return "", err

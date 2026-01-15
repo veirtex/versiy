@@ -26,7 +26,7 @@ func encodeJSON(w http.ResponseWriter, data any, status int) error {
 }
 
 func decodeJSON(r *http.Request, payload any) error {
-	decoder := json.NewDecoder(io.LimitReader(r.Body, 1<<20))
+	decoder := json.NewDecoder(io.LimitReader(r.Body, 1<<11))
 	decoder.DisallowUnknownFields()
 	if err := decoder.Decode(payload); err != nil {
 		return err
