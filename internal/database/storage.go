@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -22,7 +22,7 @@ type Storage struct {
 	}
 }
 
-func NewStorage(conn *pgx.Conn, redis *redis.Client) Storage {
+func NewStorage(conn *pgxpool.Pool, redis *redis.Client) Storage {
 	return Storage{
 		URL:   &URLStore{dbConn: conn, redisClient: redis},
 		Users: &UsersStore{redisClient: redis},

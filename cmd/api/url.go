@@ -61,7 +61,7 @@ func (app *application) GetURL(w http.ResponseWriter, r *http.Request) {
 	defer cancel()
 
 	cachedURL, err := app.store.URL.CheckCached(ctx, shortCode)
-	if cachedURL != "" {
+	if err == nil && cachedURL != "" {
 		if err := app.store.URL.UpdateClicks(ctx, shortCode); err != nil {
 			app.internalServerError(w, err)
 			return

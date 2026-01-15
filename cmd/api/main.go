@@ -19,10 +19,10 @@ func main() {
 			addr:         env.GetString("REDIS_ADDR", ""),
 			pswd:         env.GetString("REDIS_PASSWORD", ""),
 			defualtTTL:   time.Duration(time.Hour * 24),
-			dialTimeout:  2 * time.Second,
-			readTimeout:  1 * time.Second,
-			writeTimeout: 1 * time.Second,
-			poolTimeout:  2 * time.Second,
+			dialTimeout:  10 * time.Second,
+			readTimeout:  5 * time.Second,
+			writeTimeout: 5 * time.Second,
+			poolTimeout:  5 * time.Second,
 		},
 		secret:      env.GetString("SECRET", "so secret"),
 		defaultLink: env.GetString("DEFAULT_DOMAIN", ""),
@@ -32,19 +32,19 @@ func main() {
 		},
 	}
 
-	conn, err := database.NewDBConn(ctx, cfg.postgresConfig.addr)
+	pool, err := database.NewDBConn(ctx, cfg.postgresConfig.addr)
 	if err != nil {
 		panic(err)
 	}
 
 	redisClient := database.NewRedisConn(ctx, cfg.redisConfig.addr, cfg.redisConfig.pswd, cfg.redisConfig.dialTimeout, cfg.redisConfig.readTimeout, cfg.redisConfig.writeTimeout, cfg.redisConfig.poolTimeout)
 
-	defer conn.Close(ctx)
+	defer pool.Close()
 	defer redisClient.Close()
 
 	app := application{
 		cfg:   cfg,
-		store: database.NewStorage(conn, redisClient),
+		store: database.NewStorage(pool, redisClient),
 		env:   env.GetString("ENVIRONMENT", "development"),
 		mut:   &sync.Mutex{},
 	}

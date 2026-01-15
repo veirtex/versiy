@@ -12,7 +12,9 @@ type UsersStore struct {
 }
 
 func (u *UsersStore) IncrUser(ctx context.Context, id string, duration time.Duration) (int, error) {
-	_ = u.redisClient.SetNX(ctx, id, 0, duration)
+	if _, err := u.redisClient.SetNX(ctx, id, 0, duration).Result(); err != nil {
+		return 0, err
+	}
 	if val, err := u.redisClient.Incr(ctx, id).Result(); err != nil {
 		return 0, err
 	} else {
