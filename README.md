@@ -78,6 +78,8 @@ GET https://api.versiy.cc/{code}
 
 ## Hosted API (Demo)
 
+**Currently Offline**
+
 ```sh
 curl -X POST https://api.versiy.cc \
   -H "Content-Type: application/json" \
