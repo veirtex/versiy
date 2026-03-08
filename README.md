@@ -2,7 +2,7 @@
 
 Versiy is a URL shortening API built with Go, PostgreSQL, and Redis, designed with caching, rate limiting, and containerized deployment in mind.
 
-> Status: **Under active development** — breaking changes may occur.
+> Status: **Stopped**
 
 ---
 
